@@ -46,6 +46,7 @@ class BaselineAgent(ArtificialBrain):
         self._slowdown = slowdown
         self._condition = condition
         self._human_name = name
+        self._human_searched_rooms = [] # Hold human accountable for telling robot about room they've searched
         self._folder = folder
         self._phase = Phase.INTRO
         self._room_vics = []
@@ -69,6 +70,7 @@ class BaselineAgent(ArtificialBrain):
         self._to_search = []
         self._carrying = False
         self._waiting = False
+        self._wait_start_time = 0 # Add a variable to capture the start ticking time
         self._rescue = None
         self._recent_vic = None
         self._received_messages = []
@@ -383,13 +385,15 @@ class BaselineAgent(ArtificialBrain):
                                 \n clock - removal time: 5 seconds \n afstand - distance between us: ' + self._distance_human,
                                               'RescueBot')
                             self._waiting = True
+                            self._wait_start_time = state['World']['nr_ticks'] # Start counting from now
                             # Determine the next area to explore if the human tells the agent not to remove the obstacle
                         if self.received_messages_content and self.received_messages_content[
-                            -1] == 'Continue' and not self._remove:
+                            -1] == 'Continue' or (state['World']['nr_ticks'] - self._wait_start_time > 50) and not self._remove:
                             self._answered = True
                             self._waiting = False
                             # Add area to the to do list
                             self._to_search.append(self._door['room_name'])
+                            trustBeliefs[self._human_name]['willingness'] -= 0.1
                             self._phase = Phase.FIND_NEXT_GOAL
                         # Wait for the human to help removing the obstacle and remove the obstacle together
                         if self.received_messages_content and self.received_messages_content[
@@ -828,6 +832,7 @@ class BaselineAgent(ArtificialBrain):
                     area = 'area ' + msg.split()[-1]
                     if area not in self._searched_rooms:
                         self._searched_rooms.append(area)
+                        self._human_searched_rooms.append(area) # Separated human searched rooms and rooms in order to revisit room in case of missing victims
                 # If a received message involves team members finding victims, add these victims and their locations to memory
                 if msg.startswith("Found:"):
                     # Identify which victim and area it concerns
@@ -1046,6 +1051,8 @@ class BaselineAgent(ArtificialBrain):
         elif 'Remove together' in human_message or 'Rescue together' in human_message:
             # human is trying to work together
             trustBeliefs[self._human_name]['willingness'] += 0.1
+            if 'Remove together' in human_message:
+                trustBeliefs[self._human_name]['competence'] += 0.1
 
         trustBeliefs[self._human_name]['willingness'] = \
             np.clip(trustBeliefs[self._human_name]['willingness'], -1, 1)
