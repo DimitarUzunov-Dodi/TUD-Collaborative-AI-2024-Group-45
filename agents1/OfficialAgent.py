@@ -1015,32 +1015,32 @@ class BaselineAgent(ArtificialBrain):
         print("human said:", human_message)
 
         # message robot
-        if self._send_messages_state < len(self._send_messages):
-            robot_message = self._send_messages[-1]
 
-            print("robot said:", robot_message)
+        robot_message = self._send_messages[-1]
 
-            # if robot found a victim
-            if 'injured' in robot_message:
-                if 'mildly' in robot_message:
-                    if 'Rescue alone' in human_message and 'far' in robot_message:
-                        # everything is fine
-                        pass
-                    if 'Rescue alone' in human_message and 'close' in robot_message:
-                        # human should have help, but it is not that important
-                        trustBeliefs[self._human_name]['willingness'] -= 0.05
-                    if 'Rescue together' in human_message:
-                        # human seems to want to work together
-                        trustBeliefs[self._human_name]['willingness'] += 0.1
-                    if 'Continue' in human_message:
-                        # A little weird, but probably fine
-                        pass
-                if 'critically' in robot_message:
-                    if 'Rescue' in human_message:
-                        trustBeliefs[self._human_name]['willingness'] += 0.1
-                    if 'Continue' in human_message:
-                        # bad sign
-                        trustBeliefs[self._human_name]['willingness'] -= 0.05
+        print("robot said:", robot_message)
+
+        # if robot found a victim
+        if 'injured' in robot_message:
+            if 'mildly' in robot_message:
+                if 'Rescue alone' in human_message and 'far' in robot_message:
+                    # everything is fine
+                    pass
+                if 'Rescue alone' in human_message and 'close' in robot_message:
+                    # human should have help, but it is not that important
+                    trustBeliefs[self._human_name]['willingness'] -= 0.05
+                if 'Rescue together' in human_message:
+                    # human seems to want to work together
+                    trustBeliefs[self._human_name]['willingness'] += 0.1
+                if 'Continue' in human_message:
+                    # A little weird, but probably fine
+                    pass
+            if 'critically' in robot_message:
+                if 'Rescue' in human_message:
+                    trustBeliefs[self._human_name]['willingness'] += 0.1
+                if 'Continue' in human_message:
+                    # bad sign
+                    trustBeliefs[self._human_name]['willingness'] -= 0.05
 
         elif 'Found' in human_message:
             # If the human can find victims they must be a little competent right?
