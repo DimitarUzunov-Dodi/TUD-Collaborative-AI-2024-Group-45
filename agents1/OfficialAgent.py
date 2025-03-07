@@ -1069,11 +1069,12 @@ class BaselineAgent(ArtificialBrain):
         if 'injured' in robot_message:
             if 'mildly' in robot_message:
                 if 'Rescue alone' in human_message and 'far' in robot_message:
-                    # everything is fine
+                    trustBeliefs[self._human_name]['willingness'] -= 0.1
                     pass
                 if 'Rescue alone' in human_message and 'close' in robot_message:
                     # human should have help, but it is not that important
-                    trustBeliefs[self._human_name]['willingness'] -= 0.05
+                    trustBeliefs[self._human_name]['willingness'] -= 0.1
+                    trustBeliefs[self._human_name]['competence'] -= 0.1
                 if 'Rescue together' in human_message:
                     # human seems to want to work together
                     trustBeliefs[self._human_name]['willingness'] += 0.1
@@ -1085,8 +1086,16 @@ class BaselineAgent(ArtificialBrain):
                     trustBeliefs[self._human_name]['willingness'] += 0.1
                 if 'Continue' in human_message:
                     # bad sign
-                    trustBeliefs[self._human_name]['willingness'] -= 0.05
-
+                    trustBeliefs[self._human_name]['willingness'] -= 0.1
+                    
+        elif 'Found' in robot_message and 'blocking' in robot_message:
+            if 'Remove alone' in human_message:
+                if 'far' in robot_message:
+                    trustBeliefs[self._human_name]['willingness'] -= 0.1
+                elif 'close' in robot_message:
+                    trustBeliefs[self._human_name]['willingness'] -= 0.1
+                    trustBeliefs[self._human_name]['competence'] -= 0.1
+        
         elif 'Found' in human_message:
             # If the human can find victims they must be a little competent right?
             # TODO discuss if this is useful
