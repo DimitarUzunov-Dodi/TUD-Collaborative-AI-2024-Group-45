@@ -46,6 +46,7 @@ class BaselineAgent(ArtificialBrain):
         self._slowdown = slowdown
         self._condition = condition
         self._human_name = name
+        self._human_searched_rooms = [] # Hold human accountable for telling robot about room they've searched
         self._folder = folder
         self._phase = Phase.INTRO
         self._room_vics = []
@@ -69,10 +70,15 @@ class BaselineAgent(ArtificialBrain):
         self._to_search = []
         self._carrying = False
         self._waiting = False
+        self._wait_start_time = 0 # Add a variable to capture the start ticking time
         self._rescue = None
         self._recent_vic = None
         self._received_messages = []
         self._moving = False
+
+        # just for keeping track of updates
+        self.receivedMessages_state = len(self.received_messages)
+        self._send_messages_state = len(self._send_messages)
 
     def initialize(self):
         # Initialization of the state tracker and navigation algorithm
@@ -379,13 +385,15 @@ class BaselineAgent(ArtificialBrain):
                                 \n clock - removal time: 5 seconds \n afstand - distance between us: ' + self._distance_human,
                                               'RescueBot')
                             self._waiting = True
+                            self._wait_start_time = state['World']['nr_ticks'] # Start counting from now
                             # Determine the next area to explore if the human tells the agent not to remove the obstacle
                         if self.received_messages_content and self.received_messages_content[
-                            -1] == 'Continue' and not self._remove:
+                            -1] == 'Continue' or (state['World']['nr_ticks'] - self._wait_start_time > 50) and not self._remove:
                             self._answered = True
                             self._waiting = False
                             # Add area to the to do list
                             self._to_search.append(self._door['room_name'])
+                            trustBeliefs[self._human_name]['willingness'] -= 0.1
                             self._phase = Phase.FIND_NEXT_GOAL
                         # Wait for the human to help removing the obstacle and remove the obstacle together
                         if self.received_messages_content and self.received_messages_content[
@@ -402,7 +410,7 @@ class BaselineAgent(ArtificialBrain):
                                 self._send_message('Lets remove rock blocking ' + str(self._door['room_name']) + '!',
                                                   'RescueBot')
                                 return None, {}
-                        # Remain idle untill the human communicates what to do with the identified obstacle 
+                        # Remain idle untill the human communicates what to do with the identified obstacle
                         else:
                             return None, {}
 
@@ -455,7 +463,7 @@ class BaselineAgent(ArtificialBrain):
                                 \n clock - removal time together: 3 seconds \n afstand - distance between us: ' + self._distance_human + '\n clock - removal time alone: 20 seconds',
                                               'RescueBot')
                             self._waiting = True
-                        # Determine the next area to explore if the human tells the agent not to remove the obstacle          
+                        # Determine the next area to explore if the human tells the agent not to remove the obstacle
                         if self.received_messages_content and self.received_messages_content[
                             -1] == 'Continue' and not self._remove:
                             self._answered = True
@@ -824,6 +832,7 @@ class BaselineAgent(ArtificialBrain):
                     area = 'area ' + msg.split()[-1]
                     if area not in self._searched_rooms:
                         self._searched_rooms.append(area)
+                        self._human_searched_rooms.append(area) # Separated human searched rooms and rooms in order to revisit room in case of missing victims
                 # If a received message involves team members finding victims, add these victims and their locations to memory
                 if msg.startswith("Found:"):
                     # Identify which victim and area it concerns
@@ -921,7 +930,7 @@ class BaselineAgent(ArtificialBrain):
                 if trustfile_header == []:
                     trustfile_header = row
                     continue
-                # Retrieve trust values 
+                # Retrieve trust values
                 if row and row[0] == self._human_name:
                     name = row[0]
                     competence = float(row[1])
@@ -938,14 +947,10 @@ class BaselineAgent(ArtificialBrain):
         '''
         Baseline implementation of a trust belief. Creates a dictionary with trust belief scores for each team member, for example based on the received messages.
         '''
-        # Update the trust value based on for example the received messages
-        for message in receivedMessages:
-            # Increase agent trust in a team member that rescued a victim
-            if 'Collect' in message:
-                trustBeliefs[self._human_name]['competence'] += 0.10
-                # Restrict the competence belief to a range of -1 to 1
-                trustBeliefs[self._human_name]['competence'] = np.clip(trustBeliefs[self._human_name]['competence'], -1,
-                                                                       1)
+        # receivedMessages and _send_messages
+        # first just check for updated states
+        if self.receivedMessages_state < len(receivedMessages):
+            self.updateTrustBelief(trustBeliefs, receivedMessages, self._send_messages)
         # Save current trust belief values so we can later use and retrieve them to add to a csv file with all the logged trust belief values
         with open(folder + '/beliefs/currentTrustBelief.csv', mode='w') as csv_file:
             csv_writer = csv.writer(csv_file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -1002,3 +1007,57 @@ class BaselineAgent(ArtificialBrain):
             else:
                 locs.append((x[i], max(y)))
         return locs
+
+    def updateTrustBelief(self, trustBeliefs, receivedMessages, _send_messages):
+        # message human
+        human_message = receivedMessages[self.receivedMessages_state]
+        self.receivedMessages_state += 1
+
+        print("human said:", human_message)
+
+        # message robot
+
+        robot_message = self._send_messages[-1]
+
+        print("robot said:", robot_message)
+
+        # if robot found a victim
+        if 'injured' in robot_message:
+            if 'mildly' in robot_message:
+                if 'Rescue alone' in human_message and 'far' in robot_message:
+                    # everything is fine
+                    pass
+                if 'Rescue alone' in human_message and 'close' in robot_message:
+                    # human should have help, but it is not that important
+                    trustBeliefs[self._human_name]['willingness'] -= 0.05
+                if 'Rescue together' in human_message:
+                    # human seems to want to work together
+                    trustBeliefs[self._human_name]['willingness'] += 0.1
+                if 'Continue' in human_message:
+                    # A little weird, but probably fine
+                    pass
+            if 'critically' in robot_message:
+                if 'Rescue' in human_message:
+                    trustBeliefs[self._human_name]['willingness'] += 0.1
+                if 'Continue' in human_message:
+                    # bad sign
+                    trustBeliefs[self._human_name]['willingness'] -= 0.05
+
+        elif 'Found' in human_message:
+            # If the human can find victims they must be a little competent right?
+            # TODO discuss if this is useful
+            trustBeliefs[self._human_name]['competence'] += 0.05
+
+        elif 'Remove together' in human_message or 'Rescue together' in human_message:
+            # human is trying to work together
+            trustBeliefs[self._human_name]['willingness'] += 0.1
+            if 'Remove together' in human_message:
+                trustBeliefs[self._human_name]['competence'] += 0.1
+
+        trustBeliefs[self._human_name]['willingness'] = \
+            np.clip(trustBeliefs[self._human_name]['willingness'], -1, 1)
+        trustBeliefs[self._human_name]['willingness'] = \
+            np.clip(trustBeliefs[self._human_name]['willingness'], -1, 1)
+
+        print("trustBeliefs are now:", trustBeliefs)
+        return trustBeliefs
