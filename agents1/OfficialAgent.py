@@ -1016,8 +1016,7 @@ class BaselineAgent(ArtificialBrain):
 
         # message robot
         if self._send_messages_state < len(self._send_messages):
-            robot_message = self._send_messages[self._send_messages_state]
-            self._send_messages_state += 1
+            robot_message = self._send_messages[-1]
 
             print("robot said:", robot_message)
 
@@ -1043,7 +1042,7 @@ class BaselineAgent(ArtificialBrain):
                         # bad sign
                         trustBeliefs[self._human_name]['willingness'] -= 0.05
 
-        elif 'Found' in human_message:
+        elif 'Found' in uman_message:
             # If the human can find victims they must be a little competent right?
             # TODO discuss if this is useful
             trustBeliefs[self._human_name]['competence'] += 0.05
