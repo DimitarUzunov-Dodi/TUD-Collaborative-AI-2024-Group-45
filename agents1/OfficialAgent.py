@@ -1042,7 +1042,7 @@ class BaselineAgent(ArtificialBrain):
                         # bad sign
                         trustBeliefs[self._human_name]['willingness'] -= 0.05
 
-        elif 'Found' in uman_message:
+        elif 'Found' in human_message:
             # If the human can find victims they must be a little competent right?
             # TODO discuss if this is useful
             trustBeliefs[self._human_name]['competence'] += 0.05
