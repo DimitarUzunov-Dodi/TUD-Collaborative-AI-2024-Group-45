@@ -99,6 +99,8 @@ class HumanBrain(HumanAgentBrain):
         # action (with its arguments) will succeed and
         # if not why not (in the form of an ActionResult).
         self.__callback_is_action_possible = callback_is_action_possible
+        
+        self.human_moves = 0
 
         # a list which maps user inputs to actions, defined in the scenario
         # manager
@@ -230,6 +232,8 @@ class HumanBrain(HumanAgentBrain):
         # associated with that key
         pressed_keys = user_input[-1]
         action = self.key_action_map[pressed_keys]
+        self.human_moves += 1
+        print(self.human_moves)
 
         # if the user chose a grab together action, choose an object within grab_range
         if action == CarryObjectTogether.__name__:

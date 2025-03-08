@@ -75,6 +75,7 @@ class BaselineAgent(ArtificialBrain):
         self._recent_vic = None
         self._received_messages = []
         self._moving = False
+        self.ticksPerSubtask = []
 
         # just for keeping track of updates
         self.receivedMessages_state = len(self.received_messages)
@@ -778,6 +779,7 @@ class BaselineAgent(ArtificialBrain):
                     if self._goal_vic not in self._collected_victims:
                         self._collected_victims.append(self._goal_vic)
                     self._carrying_together = True
+                    self.ticksPerSubtask.append(state['World']['nr_ticks'])
                     # Determine the next victim to rescue or search
                     self._phase = Phase.FIND_NEXT_GOAL
                 # When rescuing mildly injured victims alone, pick the victim up and plan the path to the drop zone
@@ -818,6 +820,7 @@ class BaselineAgent(ArtificialBrain):
                 self._current_door = None
                 self._tick = state['World']['nr_ticks']
                 self._carrying = False
+                self.ticksPerSubtask.append(state['World']['nr_ticks'])
                 # Drop the victim on the correct location on the drop zone
                 return Drop.__name__, {'human_name': self._human_name}
 
@@ -964,6 +967,7 @@ class BaselineAgent(ArtificialBrain):
                     competence = default
                     willingness = default
                     trustBeliefs[self._human_name] = {'competence': competence, 'willingness': willingness}
+                    tickLogger = []
         return trustBeliefs
 
     def _trustBelief(self, members, trustBeliefs, folder, receivedMessages):
@@ -977,9 +981,9 @@ class BaselineAgent(ArtificialBrain):
         # Save current trust belief values so we can later use and retrieve them to add to a csv file with all the logged trust belief values
         with open(folder + '/beliefs/currentTrustBelief.csv', mode='w') as csv_file:
             csv_writer = csv.writer(csv_file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            csv_writer.writerow(['name', 'competence', 'willingness'])
+            csv_writer.writerow(['name', 'competence', 'willingness','ticksPerSubtask'])
             csv_writer.writerow([self._human_name, trustBeliefs[self._human_name]['competence'],
-                                 trustBeliefs[self._human_name]['willingness']])
+                                 trustBeliefs[self._human_name]['willingness'],self.ticksPerSubtask])
 
         return trustBeliefs
     
@@ -1113,4 +1117,5 @@ class BaselineAgent(ArtificialBrain):
             np.clip(trustBeliefs[self._human_name]['willingness'], -1, 1)
 
         print("trustBeliefs are now:", trustBeliefs)
+        print("ticksPerRescue: ", self.ticksPerSubtask)
         return trustBeliefs
