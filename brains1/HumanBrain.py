@@ -1,4 +1,4 @@
-import warnings
+import warnings,  csv
 import copy
 import numpy as np
 from matrx.actions.object_actions import GrabObject, DropObject, RemoveObject
@@ -27,6 +27,7 @@ class HumanBrain(HumanAgentBrain):
         self.__remove_range = remove_range
         self.__strength = strength
         self.__name = name
+        self._steps_taken_human = 0
 
     def _factory_initialise(self, agent_name, agent_id, action_set,
                             sense_capability, agent_properties,
@@ -281,6 +282,9 @@ class HumanBrain(HumanAgentBrain):
             action_kwargs['strength'] = self.__strength
             action_kwargs['drop_range'] = self.__drop_range
             action_kwargs['human_name'] = self.__name
+
+            # Call the logging function.
+            self.log_rescue_event(state)
             pass
 
         # If the user chose to remove an object
@@ -350,6 +354,10 @@ class HumanBrain(HumanAgentBrain):
             if state[{"name": self.__name}]['location'] in water_locs and state[{"name": self.__name}]['location'] not in [(3,5),(9,5),(15,5),(21,5),(3,6),(9,6),(15,6),(3,17),(9,17),(15,17),(3,18),(9,18),(15,18),(21,18)]:
                 action == Idle.__name__
                 action_kwargs['duration_in_ticks'] = 5
+
+            self._steps_taken_human += 1
+            with open('stats/human_steps.txt', 'w') as f:
+                f.write(str(self._steps_taken_human))
 
         return action, action_kwargs
 
@@ -555,3 +563,43 @@ class HumanBrain(HumanAgentBrain):
             object_id = None
 
         return object_id
+
+
+    def log_rescue_event(self, state):
+
+        with open('stats/trust_competence.txt', 'r') as f:
+            steps_str = f.read().strip()
+            if steps_str:
+                competence = int(steps_str)
+            else:
+                competence = 0
+
+        with open('stats/trust_willingness.txt', 'r') as f:
+            steps_str = f.read().strip()
+            if steps_str:
+                willingness = int(steps_str)
+            else:
+                willingness = 0
+
+        with open('stats/rescued.txt', 'r') as f:
+            steps_str = f.read().strip()
+            if steps_str:
+                number_of_rescued = int(steps_str)
+            else:
+                number_of_rescued = 0
+
+        number_of_rescued += 1;
+        with open('stats/rescued.txt', 'w') as f:
+            f.write(str(number_of_rescued))
+
+        with open('stats/robot_steps.txt', 'r') as f:
+            steps_str = f.read().strip()
+            if steps_str:
+                robot_steps = int(steps_str)
+            else:
+                robot_steps = 0
+
+        file_path = 'beliefs/rescue_log.csv'
+        with open(file_path, mode='a', newline='') as csv_file:
+            csv_writer = csv.writer(csv_file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            csv_writer.writerow([self.__name, number_of_rescued, self._steps_taken_human, robot_steps, state['World']['nr_ticks'], competence, willingness])
