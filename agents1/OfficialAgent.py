@@ -894,18 +894,18 @@ class BaselineAgent(ArtificialBrain):
                 if mssg.from_id == member:
                     receivedMessages[member].append(mssg.content)
         # Check the content of the received messages
-        for mssgs in receivedMessages.values():
+        for teammate, mssgs in receivedMessages.items():
             for msg in mssgs:
                 # If a received message involves team members searching areas, add these areas to the memory of areas that have been explored
                 if msg.startswith("Search:"):
                     area = 'area ' + msg.split()[-1]
                     if area not in self._searched_rooms:
                         self._searched_rooms.append(area)
-                        if msg.from_id == self._human_name:
+                        if teammate == self._human_name:
                             self._human_searched_rooms.append(area) # Separated human searched rooms and rooms in order to revisit room in case of missing victims
                             self.trustBeliefs_loaded[self._human_name]['willingness'] += 0.1
                     else: 
-                        if msg.from_id == self._human_name:
+                        if teammate == self._human_name:
                             # If the room was already searched, deduct points from the trust
                             # Human provided false information
                             self.trustBeliefs_loaded[self._human_name]['willingness'] -= 0.1
@@ -921,13 +921,13 @@ class BaselineAgent(ArtificialBrain):
                     # Add the area to the memory of searched areas
                     if loc not in self._searched_rooms:
                         self._searched_rooms.append(loc)
-                        if msg.from_id == self._human_name:
+                        if teammate == self._human_name:
                             self._human_searched_rooms.append(loc)
                     # Add the victim and its location to memory
                     if foundVic not in self._found_victims:
                         self._found_victims.append(foundVic)
                         self._found_victim_logs[foundVic] = {'room': loc}
-                        if msg.from_id == self._human_name:
+                        if teammate == self._human_name:
                         # If message was sent to the Robot by the Human
                             self._human_found_victims.append(foundVic)
                             self.trustBeliefs_loaded[self._human_name]['willingness'] += 0.1
