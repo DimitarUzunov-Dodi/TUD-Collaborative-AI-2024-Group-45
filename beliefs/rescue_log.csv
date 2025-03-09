@@ -1,2 +1,5 @@
 'human_name';'number_of_rescued_people';'steps_taken_human';'steps_taken_robot';'rescue_time';'competence';'willingness'
 qwe;1;67;12;198;0.5;0.5
+qwe;1;57;10;323;0.5;0.5
+qwe;2;65;10;211;0.55;0.5
+qwe;3;70;10;245;0.55;0.5

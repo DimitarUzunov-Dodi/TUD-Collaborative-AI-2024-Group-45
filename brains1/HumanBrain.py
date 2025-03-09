@@ -356,8 +356,9 @@ class HumanBrain(HumanAgentBrain):
                 action_kwargs['duration_in_ticks'] = 5
 
             self._steps_taken_human += 1
-            with open('stats/human_steps.txt', 'w') as f:
-                f.write(str(self._steps_taken_human))
+            if self._steps_taken_human % 10 == 0:
+                with open('stats/human_steps.txt', 'w') as f:
+                    f.write(str(self._steps_taken_human))
 
         return action, action_kwargs
 
