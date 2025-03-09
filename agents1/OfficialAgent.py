@@ -125,8 +125,8 @@ class BaselineAgent(ArtificialBrain):
 
         # BASELINES
         ## NEVER TRUST
-        # self.trustBeliefs_loaded[self._human_name]['competence'] = -1
-        # self.trustBeliefs_loaded[self._human_name]['willingness'] = -1
+        self.trustBeliefs_loaded[self._human_name]['competence'] = -1
+        self.trustBeliefs_loaded[self._human_name]['willingness'] = -1
         #
         # ## ALWAYS TRUST
         # self.trustBeliefs_loaded[self._human_name]['competence'] = 1
@@ -937,7 +937,7 @@ class BaselineAgent(ArtificialBrain):
                             self.trustBeliefs_loaded[self._human_name]['willingness'] += 0.1
                     if foundVic in self._found_victims and self._found_victim_logs[foundVic]['room'] != loc:
                         self._found_victim_logs[foundVic] = {'room': loc}
-                        if msg.from_id == self._human_name:
+                        if teammate == self._human_name:
                             self.trustBeliefs_loaded[self._human_name]['willingness'] -= 0.1
                     # Decide to help the human carry a found victim when the human's condition is 'weak'
                     if condition == 'weak':
@@ -956,24 +956,24 @@ class BaselineAgent(ArtificialBrain):
                     # Add the area to the memory of searched areas
                     if loc not in self._searched_rooms:
                         self._searched_rooms.append(loc)
-                        if msg.from_id == self._human_name:
+                        if teammate == self._human_name:
                             self._human_searched_rooms.append(loc)
                     # Add the victim and location to the memory of found victims
                     if collectVic not in self._collected_victims:
                         if collectVic not in self._found_victims:
                             self._found_victims.append(collectVic)
                             self._found_victim_logs[collectVic] = {'room': loc}
-                            if msg.from_id == self._human_name:
+                            if teammate == self._human_name:
                                 self._human_picked_up_victims.append(collectVic)
                                 self.trustBeliefs_loaded[self._human_name]['competence'] += 0.1
                         if collectVic in self._found_victims and self._found_victim_logs[collectVic]['room'] != loc:
                             self._found_victim_logs[collectVic] = {'room': loc} 
-                            if msg.from_id == self._human_name:
+                            if teammate == self._human_name:
                                 self._human_picked_up_victims.append(collectVic)
                                 self.trustBeliefs_loaded[self._human_name]['competence'] += 0.1
                                 self.trustBeliefs_loaded[self._human_name]['willingness'] += 0.1
                     else:
-                        if msg.from_id == self._human_name:
+                        if teammate == self._human_name:
                             self.trustBeliefs_loaded[self._human_name]['competence'] -= 0.1
                             self.trustBeliefs_loaded[self._human_name]['willingness'] += 0.1
                     # Add the victim to the memory of rescued victims when the human's condition is not weak
