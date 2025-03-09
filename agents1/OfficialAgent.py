@@ -77,6 +77,11 @@ class BaselineAgent(ArtificialBrain):
         self._recent_vic = None
         self._received_messages = []
         self._moving = False
+        self._loaded_believe = True
+        self.trustBeliefs_loaded = self._loadBelief(self._team_members, self._folder)
+
+        self._steps_taken_robot = 0
+        self._steps_taken_human = 0
 
         # just for keeping track of updates
         self.receivedMessages_state = len(self.received_messages)
@@ -106,8 +111,12 @@ class BaselineAgent(ArtificialBrain):
         # Process messages from team members
         self._process_messages(state, self._team_members, self._condition)
         # Initialize and update trust beliefs for team members
-        trustBeliefs = self._loadBelief(self._team_members, self._folder)
-        self._trustBelief(self._team_members, trustBeliefs, self._folder, self._received_messages)
+
+        if self._loaded_believe:
+            self.trustBeliefs_loaded = self._loadBelief(self._team_members, self._folder)
+            self._loaded_believe = False
+
+        self._trustBelief(self._team_members, self.trustBeliefs_loaded, self._folder, self._received_messages)
 
         # Check whether human is close in distance
         if state[{'is_human_agent': True}]:
@@ -359,6 +368,14 @@ class BaselineAgent(ArtificialBrain):
 
                     # Retrieve move actions to execute
                     action = self._navigator.get_move_action(self._state_tracker)
+
+                    self._steps_taken_robot += 1
+                    #print("robot moving {self._steps_taken_robot}")
+
+                    if self._steps_taken_robot % 10 == 0:
+                        with open('stats/robot_steps.txt', 'w') as f:
+                            f.write(str(self._steps_taken_robot))
+
                     # Check for obstacles blocking the path to the area and handle them if needed
                     if action is not None:
                         # Remove obstacles blocking the path to the area 
@@ -388,7 +405,7 @@ class BaselineAgent(ArtificialBrain):
                         # Communicate which obstacle is blocking the entrance
                         if self._answered == False and not self._remove and not self._waiting:
                             #Case to not trust the agent
-                            if self._check_user_trust(trustBeliefs):
+                            if self._check_user_trust( self.trustBeliefs_loaded):
                                 self._send_message('Found rock blocking ' + str(self._door['room_name']) + '. Please decide whether to "Remove" or "Continue" searching. \n \n \
                                     Important features to consider are: \n safe - victims rescued: ' + str(
                                     self._collected_victims) + ' \n explore - areas searched: area ' + str(
@@ -399,7 +416,7 @@ class BaselineAgent(ArtificialBrain):
                                 self._wait_start_time = state['World']['nr_ticks'] # Start counting from now
                             # Determine the next area to explore if the human tells the agent not to remove the obstacle
                             else:
-                                print('skip')
+                                # print('skip')
                                 self._answered = True
                                 self._waiting = False
                                 self._to_search.append(self._door['room_name'])
@@ -411,7 +428,7 @@ class BaselineAgent(ArtificialBrain):
                             self._waiting = False
                             # Add area to the to do list
                             self._to_search.append(self._door['room_name'])
-                            trustBeliefs[self._human_name]['willingness'] -= 0.1
+                            self.trustBeliefs_loaded[self._human_name]['willingness'] -= 0.1
                             self._phase = Phase.FIND_NEXT_GOAL
                         # Wait for the human to help removing the obstacle and remove the obstacle together
                         if self.received_messages_content and self.received_messages_content[
@@ -502,7 +519,7 @@ class BaselineAgent(ArtificialBrain):
                         # Remove the obstacle together if the human decides so
                         if self.received_messages_content and self.received_messages_content[
                             -1] == 'Remove together' or self._remove:
-                            if self._check_user_trust(trustBeliefs):
+                            if self._check_user_trust( self.trustBeliefs_loaded):
                                 if not self._remove:
                                     self._answered = True
                                 # Tell the human to come over and be idle untill human arrives
@@ -627,7 +644,7 @@ class BaselineAgent(ArtificialBrain):
                                                                 'obj_id': info['obj_id']}
                                 # Communicate which victim the agent found and ask the human whether to rescue the victim now or at a later stage
                                 if 'mild' in vic and self._answered == False and not self._waiting:
-                                    if self._check_user_trust(trustBeliefs):
+                                    if self._check_user_trust( self.trustBeliefs_loaded):
                                         self._send_message('Found ' + vic + ' in ' + self._door['room_name'] + '. Please decide whether to "Rescue together", "Rescue alone", or "Continue" searching. \n \n \
                                             Important features to consider are: \n safe - victims rescued: ' + str(
                                             self._collected_victims) + '\n explore - areas searched: area ' + str(
@@ -636,7 +653,7 @@ class BaselineAgent(ArtificialBrain):
                                                           'RescueBot')
                                         self._waiting = True
                                     else:
-                                        print('skip')
+                                        # print('skip')
                                         self._answered = True
                                         self._waiting = False
                                         self._to_search.append(self._door['room_name'])
@@ -832,6 +849,11 @@ class BaselineAgent(ArtificialBrain):
                 self._current_door = None
                 self._tick = state['World']['nr_ticks']
                 self._carrying = False
+
+                # Log that someone has been rescued by the robot
+                self.log_rescue_event(state)
+
+
                 # Drop the victim on the correct location on the drop zone
                 return Drop.__name__, {'human_name': self._human_name}
 
@@ -988,6 +1010,12 @@ class BaselineAgent(ArtificialBrain):
         trustBeliefs = {}
         # Set a default starting trust value
         default = 0.5
+
+        # with open('stats/trust_willingness.txt', 'w') as f:
+        #     f.write(str(default))
+        # with open('stats/trust_competence.txt', 'w') as f:
+        #     f.write(str(default))
+
         trustfile_header = []
         trustfile_contents = []
         # Check if agent already collaborated with this human before, if yes: load the corresponding trust values, if no: initialize using default trust values
@@ -1003,11 +1031,23 @@ class BaselineAgent(ArtificialBrain):
                     competence = float(row[1])
                     willingness = float(row[2])
                     trustBeliefs[name] = {'competence': competence, 'willingness': willingness}
+                    with open('stats/trust_willingness.txt', 'w') as f:
+                        f.write(str(trustBeliefs[self._human_name]['willingness']))
+                    with open('stats/trust_competence.txt', 'w') as f:
+                        f.write(str(trustBeliefs[self._human_name]['competence']))
                 # Initialize default trust values
                 if row and row[0] != self._human_name:
+                    print("SETTING DEFAULT")
                     competence = default
                     willingness = default
                     trustBeliefs[self._human_name] = {'competence': competence, 'willingness': willingness}
+                    with open('stats/trust_willingness.txt', 'w') as f:
+                        f.write(str(trustBeliefs[self._human_name]['willingness']))
+                    with open('stats/trust_competence.txt', 'w') as f:
+                        f.write(str(trustBeliefs[self._human_name]['competence']))
+
+
+
         return trustBeliefs
 
     def _trustBelief(self, members, trustBeliefs, folder, receivedMessages):
@@ -1101,13 +1141,13 @@ class BaselineAgent(ArtificialBrain):
         human_message = receivedMessages[self.receivedMessages_state]
         self.receivedMessages_state += 1
 
-        print("human said:", human_message)
+        # print("human said:", human_message)
 
         # message robot
 
         robot_message = self._send_messages[-1]
 
-        print("robot said:", robot_message)
+        # print("robot said:", robot_message)
 
         # if robot found a victim
         if 'injured' in robot_message:
@@ -1156,5 +1196,52 @@ class BaselineAgent(ArtificialBrain):
         trustBeliefs[self._human_name]['willingness'] = \
             np.clip(trustBeliefs[self._human_name]['willingness'], -1, 1)
 
-        print("trustBeliefs are now:", trustBeliefs)
+
+        print("--trustBeliefs are now:", trustBeliefs)
+        with open('stats/trust_willingness.txt', 'w') as f:
+            f.write(str(trustBeliefs[self._human_name]['willingness']))
+            print("--WRITE:", trustBeliefs)
+        with open('stats/trust_competence.txt', 'w') as f:
+            f.write(str(trustBeliefs[self._human_name]['competence']))
+            print("--tWRITE:", trustBeliefs)
+
+
         return trustBeliefs
+
+    def log_rescue_event(self, state):
+        with open('stats/trust_competence.txt', 'r') as f:
+            steps_str = f.read().strip()
+            if steps_str:
+                competence = float(steps_str)
+            else:
+                competence = 0
+
+        with open('stats/trust_willingness.txt', 'r') as f:
+            steps_str = f.read().strip()
+            if steps_str:
+                willingness = float(steps_str)
+            else:
+                willingness = 0
+
+        with open('stats/rescued.txt', 'r') as f:
+            steps_str = f.read().strip()
+            if steps_str:
+                number_of_rescued = int(steps_str)
+            else:
+                number_of_rescued = 0
+
+        number_of_rescued += 1;
+        with open('stats/rescued.txt', 'w') as f:
+            f.write(str(number_of_rescued))
+
+        with open('stats/human_steps.txt', 'r') as f:
+            steps_str = f.read().strip()
+            if steps_str:
+                steps_taken_human = int(steps_str)
+            else:
+                steps_taken_human = 0
+
+        file_path = 'beliefs/rescue_log.csv'
+        with open(file_path, mode='a', newline='') as csv_file:
+            csv_writer = csv.writer(csv_file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            csv_writer.writerow([self.__name, number_of_rescued, steps_taken_human, self._steps_taken_robot, state['World']['nr_ticks'], competence, willingness])
