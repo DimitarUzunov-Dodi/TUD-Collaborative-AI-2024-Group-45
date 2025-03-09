@@ -136,6 +136,11 @@ class BaselineAgent(ArtificialBrain):
         # self.trustBeliefs_loaded[self._human_name]['competence'] = random.uniform(-1, 1)
         # self.trustBeliefs_loaded[self._human_name]['willingness'] = random.uniform(-1, 1)
 
+        self.trustBeliefs_loaded[self._human_name]['willingness'] = \
+            np.clip(self.trustBeliefs_loaded[self._human_name]['willingness'], -1, 1)
+        self.trustBeliefs_loaded[self._human_name]['competence'] = \
+            np.clip(self.trustBeliefs_loaded[self._human_name]['competence'], -1, 1)
+
         self._trustBelief(self._team_members, self.trustBeliefs_loaded, self._folder, self._received_messages)
 
         # Check whether human is close in distance
@@ -1019,6 +1024,11 @@ class BaselineAgent(ArtificialBrain):
                                                    '14']:
                 self._human_loc = int(mssgs[-1].split()[-1])
 
+        self.trustBeliefs_loaded[self._human_name]['willingness'] = \
+            np.clip(self.trustBeliefs_loaded[self._human_name]['willingness'], -1, 1)
+        self.trustBeliefs_loaded[self._human_name]['competence'] = \
+            np.clip(self.trustBeliefs_loaded[self._human_name]['competence'], -1, 1)
+
     def _loadBelief(self, members, folder):
         '''
         Loads trust belief values if agent already collaborated with human before, otherwise trust belief values are initialized using default values.
@@ -1210,8 +1220,8 @@ class BaselineAgent(ArtificialBrain):
 
         trustBeliefs[self._human_name]['willingness'] = \
             np.clip(trustBeliefs[self._human_name]['willingness'], -1, 1)
-        trustBeliefs[self._human_name]['willingness'] = \
-            np.clip(trustBeliefs[self._human_name]['willingness'], -1, 1)
+        trustBeliefs[self._human_name]['competence'] = \
+            np.clip(trustBeliefs[self._human_name]['competence'], -1, 1)
 
 
         print("--trustBeliefs are now:", trustBeliefs)
