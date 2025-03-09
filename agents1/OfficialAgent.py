@@ -93,6 +93,13 @@ class BaselineAgent(ArtificialBrain):
         self._navigator = Navigator(agent_id=self.agent_id, action_set=self.action_set,
                                     algorithm=Navigator.A_STAR_ALGORITHM)
 
+        with open('stats/rescued.txt', 'w') as f:
+            f.write(str(0))
+        with open('stats/human_steps.txt', 'w') as f:
+            f.write(str(0))
+        with open('stats/robot_steps.txt', 'w') as f:
+            f.write(str(0))
+
     def filter_observations(self, state):
         # Filtering of the world state before deciding on an action 
         return state
@@ -260,7 +267,7 @@ class BaselineAgent(ArtificialBrain):
                 else:
                     # Adding a sanity check in case the human provided wrongful information:
                     if len(self._human_searched_rooms) > 0:
-                        if not self._check_user_trust(trustBeliefs, "willingness"):
+                        if not self._check_user_trust(self.trustBeliefs_loaded, "willingness"):
                             check_this_room = random.choice(self._human_searched_rooms)
                             self._human_searched_rooms.remove(check_this_room)
                             self._searched_rooms.remove(check_this_room)
@@ -613,8 +620,8 @@ class BaselineAgent(ArtificialBrain):
 
                                 # In case human said this victim was already picked up(LIED)
                                 if vic in self._human_picked_up_victims:
-                                    trustBeliefs[self._human_name]['competence'] -= 0.1
-                                    trustBeliefs[self._human_name]['willingness'] -= 0.1
+                                    self.trustBeliefs_loaded[self._human_name]['competence'] -= 0.1
+                                    self.trustBeliefs_loaded[self._human_name]['willingness'] -= 0.1
 
                             # Identify the exact location of the victim that was found by the human earlier
                             if vic in self._found_victims and 'location' not in self._found_victim_logs[vic].keys():
@@ -809,6 +816,9 @@ class BaselineAgent(ArtificialBrain):
                     if self._goal_vic not in self._collected_victims:
                         self._collected_victims.append(self._goal_vic)
                     self._carrying_together = True
+
+                    self.log_rescue_event(state)
+
                     # Determine the next victim to rescue or search
                     self._phase = Phase.FIND_NEXT_GOAL
                 # When rescuing mildly injured victims alone, pick the victim up and plan the path to the drop zone
@@ -893,13 +903,13 @@ class BaselineAgent(ArtificialBrain):
                         self._searched_rooms.append(area)
                         if msg.from_id == self._human_name:
                             self._human_searched_rooms.append(area) # Separated human searched rooms and rooms in order to revisit room in case of missing victims
-                            trustBeliefs[self._human_name]['willingness'] += 0.1
+                            self.trustBeliefs_loaded[self._human_name]['willingness'] += 0.1
                     else: 
                         if msg.from_id == self._human_name:
                             # If the room was already searched, deduct points from the trust
                             # Human provided false information
-                            trustBeliefs[self._human_name]['willingness'] -= 0.1
-                            trustBeliefs[self._human_name]['competence'] -= 0.1
+                            self.trustBeliefs_loaded[self._human_name]['willingness'] -= 0.1
+                            self.trustBeliefs_loaded[self._human_name]['competence'] -= 0.1
                 # If a received message involves team members finding victims, add these victims and their locations to memory
                 if msg.startswith("Found:"):
                     # Identify which victim and area it concerns
@@ -920,11 +930,11 @@ class BaselineAgent(ArtificialBrain):
                         if msg.from_id == self._human_name:
                         # If message was sent to the Robot by the Human
                             self._human_found_victims.append(foundVic)
-                            trustBeliefs[self._human_name]['willingness'] += 0.1
+                            self.trustBeliefs_loaded[self._human_name]['willingness'] += 0.1
                     if foundVic in self._found_victims and self._found_victim_logs[foundVic]['room'] != loc:
                         self._found_victim_logs[foundVic] = {'room': loc}
                         if msg.from_id == self._human_name:
-                            trustBeliefs[self._human_name]['willingness'] -= 0.1
+                            self.trustBeliefs_loaded[self._human_name]['willingness'] -= 0.1
                     # Decide to help the human carry a found victim when the human's condition is 'weak'
                     if condition == 'weak':
                         self._rescue = 'together'
@@ -945,23 +955,23 @@ class BaselineAgent(ArtificialBrain):
                         if msg.from_id == self._human_name:
                             self._human_searched_rooms.append(loc)
                     # Add the victim and location to the memory of found victims
-                    if collectVic not in _collected_victims:
+                    if collectVic not in self._collected_victims:
                         if collectVic not in self._found_victims:
                             self._found_victims.append(collectVic)
                             self._found_victim_logs[collectVic] = {'room': loc}
                             if msg.from_id == self._human_name:
                                 self._human_picked_up_victims.append(collectVic)
-                                trustBeliefs[self._human_name]['competence'] += 0.1
+                                self.trustBeliefs_loaded[self._human_name]['competence'] += 0.1
                         if collectVic in self._found_victims and self._found_victim_logs[collectVic]['room'] != loc:
                             self._found_victim_logs[collectVic] = {'room': loc} 
                             if msg.from_id == self._human_name:
                                 self._human_picked_up_victims.append(collectVic)
-                                trustBeliefs[self._human_name]['competence'] += 0.1
-                                trustBeliefs[self._human_name]['willingness'] += 0.1
+                                self.trustBeliefs_loaded[self._human_name]['competence'] += 0.1
+                                self.trustBeliefs_loaded[self._human_name]['willingness'] += 0.1
                     else:
                         if msg.from_id == self._human_name:
-                            trustBeliefs[self._human_name]['competence'] -= 0.1
-                            trustBeliefs[self._human_name]['willingness'] += 0.1
+                            self.trustBeliefs_loaded[self._human_name]['competence'] -= 0.1
+                            self.trustBeliefs_loaded[self._human_name]['willingness'] += 0.1
                     # Add the victim to the memory of rescued victims when the human's condition is not weak
                     if condition != 'weak' and collectVic not in self._collected_victims:
                         self._collected_victims.append(collectVic)
@@ -1244,4 +1254,4 @@ class BaselineAgent(ArtificialBrain):
         file_path = 'beliefs/rescue_log.csv'
         with open(file_path, mode='a', newline='') as csv_file:
             csv_writer = csv.writer(csv_file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            csv_writer.writerow([self.__name, number_of_rescued, steps_taken_human, self._steps_taken_robot, state['World']['nr_ticks'], competence, willingness])
+            csv_writer.writerow([self._human_name, number_of_rescued, steps_taken_human, self._steps_taken_robot, state['World']['nr_ticks'], competence, willingness])
