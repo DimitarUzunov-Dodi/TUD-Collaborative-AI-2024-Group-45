@@ -133,8 +133,8 @@ class BaselineAgent(ArtificialBrain):
         # self.trustBeliefs_loaded[self._human_name]['willingness'] = 1
         #
         # ## RANDOM TRUST
-        self.trustBeliefs_loaded[self._human_name]['competence'] = random.uniform(-1, 1)
-        self.trustBeliefs_loaded[self._human_name]['willingness'] = random.uniform(-1, 1)
+        # self.trustBeliefs_loaded[self._human_name]['competence'] = random.uniform(-1, 1)
+        # self.trustBeliefs_loaded[self._human_name]['willingness'] = random.uniform(-1, 1)
 
         self._trustBelief(self._team_members, self.trustBeliefs_loaded, self._folder, self._received_messages)
 
@@ -283,7 +283,10 @@ class BaselineAgent(ArtificialBrain):
                         if not self._check_user_trust(self.trustBeliefs_loaded, "willingness"):
                             check_this_room = random.choice(self._human_searched_rooms)
                             self._human_searched_rooms.remove(check_this_room)
-                            self._searched_rooms.remove(check_this_room)
+                            try:
+                                self._searched_rooms.remove(check_this_room)
+                            except ValueError:
+                                pass
 
                     # Identify the closest door when the agent did not search any areas yet
                     if self._current_door == None:
