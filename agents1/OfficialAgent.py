@@ -125,16 +125,16 @@ class BaselineAgent(ArtificialBrain):
 
         # BASELINES
         ## NEVER TRUST
-        self.trustBeliefs_loaded[self._human_name]['competence'] = -1
-        self.trustBeliefs_loaded[self._human_name]['willingness'] = -1
-        #
+        # self.trustBeliefs_loaded[self._human_name]['competence'] = -1
+        # self.trustBeliefs_loaded[self._human_name]['willingness'] = -1
+        # #
         # ## ALWAYS TRUST
         # self.trustBeliefs_loaded[self._human_name]['competence'] = 1
         # self.trustBeliefs_loaded[self._human_name]['willingness'] = 1
         #
         # ## RANDOM TRUST
-        # self.trustBeliefs_loaded[self._human_name]['competence'] = random.uniform(-1, 1)
-        # self.trustBeliefs_loaded[self._human_name]['willingness'] = random.uniform(-1, 1)
+        self.trustBeliefs_loaded[self._human_name]['competence'] = random.uniform(-1, 1)
+        self.trustBeliefs_loaded[self._human_name]['willingness'] = random.uniform(-1, 1)
 
         self._trustBelief(self._team_members, self.trustBeliefs_loaded, self._folder, self._received_messages)
 
