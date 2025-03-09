@@ -123,6 +123,19 @@ class BaselineAgent(ArtificialBrain):
             self.trustBeliefs_loaded = self._loadBelief(self._team_members, self._folder)
             self._loaded_believe = False
 
+        # BASELINES
+        ## NEVER TRUST
+        # self.trustBeliefs_loaded[self._human_name]['competence'] = -1
+        # self.trustBeliefs_loaded[self._human_name]['willingness'] = -1
+        #
+        # ## ALWAYS TRUST
+        # self.trustBeliefs_loaded[self._human_name]['competence'] = 1
+        # self.trustBeliefs_loaded[self._human_name]['willingness'] = 1
+        #
+        # ## RANDOM TRUST
+        # self.trustBeliefs_loaded[self._human_name]['competence'] = random.uniform(-1, 1)
+        # self.trustBeliefs_loaded[self._human_name]['willingness'] = random.uniform(-1, 1)
+
         self._trustBelief(self._team_members, self.trustBeliefs_loaded, self._folder, self._received_messages)
 
         # Check whether human is close in distance
@@ -411,23 +424,14 @@ class BaselineAgent(ArtificialBrain):
                         objects.append(info)
                         # Communicate which obstacle is blocking the entrance
                         if self._answered == False and not self._remove and not self._waiting:
-                            #Case to not trust the agent
-                            if self._check_user_trust( self.trustBeliefs_loaded):
-                                self._send_message('Found rock blocking ' + str(self._door['room_name']) + '. Please decide whether to "Remove" or "Continue" searching. \n \n \
-                                    Important features to consider are: \n safe - victims rescued: ' + str(
-                                    self._collected_victims) + ' \n explore - areas searched: area ' + str(
-                                    self._searched_rooms).replace('area ', '') + ' \
-                                    \n clock - removal time: 5 seconds \n afstand - distance between us: ' + self._distance_human,
-                                                  'RescueBot')
-                                self._waiting = True
-                                self._wait_start_time = state['World']['nr_ticks'] # Start counting from now
+                            self._send_message('Found rock blocking ' + str(self._door['room_name']) + '. Please decide whether to "Remove" or "Continue" searching. \n \n \
+                                                       Important features to consider are: \n safe - victims rescued: ' + str(
+                                self._collected_victims) + ' \n explore - areas searched: area ' + str(
+                                self._searched_rooms).replace('area ', '') + ' \
+                                                       \n clock - removal time: 5 seconds \n afstand - distance between us: ' + self._distance_human,
+                                               'RescueBot')
+                            self._waiting = True
                             # Determine the next area to explore if the human tells the agent not to remove the obstacle
-                            else:
-                                # print('skip')
-                                self._answered = True
-                                self._waiting = False
-                                self._to_search.append(self._door['room_name'])
-                                self._phase = Phase.FIND_NEXT_GOAL
 
                         if self.received_messages_content and self.received_messages_content[
                             -1] == 'Continue' or (state['World']['nr_ticks'] - self._wait_start_time > 50) and not self._remove:
@@ -442,7 +446,7 @@ class BaselineAgent(ArtificialBrain):
                             -1] == 'Remove' or self._remove:
                             if not self._remove:
                                 self._answered = True
-                            # Tell the human to come over and be idle untill human arrives
+                            # Tell the human to come over and be idle until human arrives
                             if not state[{'is_human_agent': True}]:
                                 self._send_message('Please come to ' + str(self._door['room_name']) + ' to remove rock.',
                                                   'RescueBot')
