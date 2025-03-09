@@ -1084,11 +1084,11 @@ class BaselineAgent(ArtificialBrain):
         # message human
         human_message = receivedMessages[self.receivedMessages_state]
         self.receivedMessages_state += 1
-        print("human said:", human_message)
+        # print("human said:", human_message)
 
         # message robot
         robot_message = self._send_messages[-1]
-        print("robot said:", robot_message)
+        # print("robot said:", robot_message)
 
         # if robot found a victim
         if 'injured' in robot_message:
@@ -1173,7 +1173,7 @@ class BaselineAgent(ArtificialBrain):
 
         competence = self.trustBeliefs[self._human_name]['competence']
         willingness = self.trustBeliefs[self._human_name]['willingness']
-        print("print :", competence, willingness)
+        # print("print :", competence, willingness)
 
         with open('stats/rescued.txt', 'r') as f:
             steps_str = f.read().strip()
