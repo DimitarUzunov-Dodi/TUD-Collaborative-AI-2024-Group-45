@@ -1153,14 +1153,14 @@ class BaselineAgent(ArtificialBrain):
         with open('stats/trust_competence.txt', 'r') as f:
             steps_str = f.read().strip()
             if steps_str:
-                competence = int(steps_str)
+                competence = float(steps_str)
             else:
                 competence = 0
 
         with open('stats/trust_willingness.txt', 'r') as f:
             steps_str = f.read().strip()
             if steps_str:
-                willingness = int(steps_str)
+                willingness = float(steps_str)
             else:
                 willingness = 0
 
