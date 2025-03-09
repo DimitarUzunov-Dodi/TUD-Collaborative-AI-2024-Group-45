@@ -1147,7 +1147,6 @@ class BaselineAgent(ArtificialBrain):
             f.write(str(trustBeliefs[self._human_name]['competence']))
 
         # print("trustBeliefs are now:", trustBeliefs)
-        self.storeBelief( trustBeliefs, self._folder)
         return trustBeliefs
 
     def log_rescue_event(self, state):
@@ -1172,7 +1171,7 @@ class BaselineAgent(ArtificialBrain):
             else:
                 number_of_rescued = 0
 
-        number_of_rescued += 1
+        number_of_rescued += 1;
         with open('stats/rescued.txt', 'w') as f:
             f.write(str(number_of_rescued))
 
@@ -1186,38 +1185,4 @@ class BaselineAgent(ArtificialBrain):
         file_path = 'beliefs/rescue_log.csv'
         with open(file_path, mode='a', newline='') as csv_file:
             csv_writer = csv.writer(csv_file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            csv_writer.writerow([self._human_name, number_of_rescued, steps_taken_human, self._steps_taken_robot, state['World']['nr_ticks'], competence, willingness])
-            
-            
-            
-    def storeBelief(self, trustBeliefs, folder):
-        trustfile_header = []
-        trustfile_contents = []
-
-        with open(folder + '/beliefs/allTrustBeliefs.csv', 'r') as csvfile:
-            reader = csv.reader(csvfile, delimiter=';', quotechar="'")
-            for row in reader:
-                if not trustfile_header:
-                    trustfile_header = row
-                    continue
-                trustfile_contents.append(row)
-                if row and row[0] == self._human_name:
-                    trustBeliefs[row[0]] = {'competence': float(row[1]), 'willingness': float(row[2])}
-
-        competence = trustBeliefs[self._human_name]['competence']
-        willingness = trustBeliefs[self._human_name]['willingness']
-
-        with open(folder + '/beliefs/allTrustBeliefs.csv', 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(trustfile_header)
-            for row in trustfile_contents:
-                if row[0] != self._human_name:
-                    writer.writerow(row)
-            writer.writerow([self._human_name, competence, willingness])
-
-        with open('stats/trust_willingness.txt', 'w') as f:
-            f.write(str(willingness))
-
-        with open('stats/trust_competence.txt', 'w') as f:
-            f.write(str(competence))
-
+            csv_writer.writerow([self.__name, number_of_rescued, steps_taken_human, self._steps_taken_robot, state['World']['nr_ticks'], competence, willingness])
