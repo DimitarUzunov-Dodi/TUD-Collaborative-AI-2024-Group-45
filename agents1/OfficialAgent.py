@@ -108,7 +108,7 @@ class BaselineAgent(ArtificialBrain):
         self._process_messages(state, self._team_members, self._condition)
         # Initialize and update trust beliefs for team members
         trustBeliefs = self._loadBelief(self._team_members, self._folder)
-        self._trustBelief(self._team_members, trustBeliefs, self._folder, self._received_messages)
+        trustBeliefs = self._trustBelief(self._team_members, trustBeliefs, self._folder, self._received_messages)
 
         # Check whether human is close in distance
         if state[{'is_human_agent': True}]:
@@ -1084,14 +1084,11 @@ class BaselineAgent(ArtificialBrain):
         # message human
         human_message = receivedMessages[self.receivedMessages_state]
         self.receivedMessages_state += 1
-
-        # print("human said:", human_message)
+        print("human said:", human_message)
 
         # message robot
-
         robot_message = self._send_messages[-1]
-
-        # print("robot said:", robot_message)
+        print("robot said:", robot_message)
 
         # if robot found a victim
         if 'injured' in robot_message:
@@ -1141,28 +1138,42 @@ class BaselineAgent(ArtificialBrain):
             np.clip(trustBeliefs[self._human_name]['willingness'], -1, 1)
 
 
-        with open('trust_willingness.txt', 'w') as f:
-            f.write(str(trustBeliefs[self._human_name]['willingness']))
-        with open('trust_competence.txt', 'w') as f:
-            f.write(str(trustBeliefs[self._human_name]['competence']))
+        # with open('trust_willingness.txt', 'w') as f:
+        #     f.write(str(trustBeliefs[self._human_name]['willingness']))
+        # with open('trust_competence.txt', 'w') as f:
+        #     f.write(str(trustBeliefs[self._human_name]['competence']))
 
-        # print("trustBeliefs are now:", trustBeliefs)
+        print("trustBeliefs are now:", trustBeliefs)
+
+
+        with open(self._folder + '/beliefs/allTrustBeliefs.csv', mode='a', newline='') as csv_file:
+            csv_writer = csv.writer(csv_file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            csv_writer.writerow([self._human_name, trustBeliefs[self._human_name]['competence'],
+                                 trustBeliefs[self._human_name]['willingness']])
+
+        self.trustBeliefs = trustBeliefs
         return trustBeliefs
 
     def log_rescue_event(self, state):
-        with open('stats/trust_competence.txt', 'r') as f:
-            steps_str = f.read().strip()
-            if steps_str:
-                competence = float(steps_str)
-            else:
-                competence = 0
 
-        with open('stats/trust_willingness.txt', 'r') as f:
-            steps_str = f.read().strip()
-            if steps_str:
-                willingness = float(steps_str)
-            else:
-                willingness = 0
+        # with open('stats/trust_competence.txt', 'r') as f:
+        #     steps_str = f.read().strip()
+        #     if steps_str:
+        #         competence = float(steps_str)
+        #     else:
+        #         competence = 0
+        #
+        # with open('stats/trust_willingness.txt', 'r') as f:
+        #     steps_str = f.read().strip()
+        #     if steps_str:
+        #         willingness = float(steps_str)
+        #     else:
+        #         willingness = 0
+
+
+        competence = self.trustBeliefs[self._human_name]['competence']
+        willingness = self.trustBeliefs[self._human_name]['willingness']
+        print("print :", competence, willingness)
 
         with open('stats/rescued.txt', 'r') as f:
             steps_str = f.read().strip()
